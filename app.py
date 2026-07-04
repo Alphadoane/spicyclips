@@ -68,6 +68,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
+
+
 # ---------------------------------------------------------- system check --
 
 @app.route("/api/system/check")
