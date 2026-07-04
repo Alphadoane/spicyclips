@@ -35,6 +35,15 @@ def _require_ytdlp():
         )
 
 
+def _get_cookies_opt():
+    """Look for cookies.txt in the project root and return cookiefile option if present."""
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cookies_path = os.path.join(root_dir, "cookies.txt")
+    if os.path.exists(cookies_path):
+        return {"cookiefile": cookies_path}
+    return {}
+
+
 def probe_url(url):
     """
     Inspect a URL and return metadata plus the list of quality buckets
@@ -43,6 +52,7 @@ def probe_url(url):
     """
     _require_ytdlp()
     ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+    ydl_opts.update(_get_cookies_opt())
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
 
@@ -112,6 +122,7 @@ def download(url, quality_label, dest_dir, media_id=None):
             "preferredcodec": "m4a",
         }],
     }
+    ydl_opts.update(_get_cookies_opt())
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
