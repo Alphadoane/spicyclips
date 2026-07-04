@@ -13,6 +13,16 @@ async function req(url, options = {}) {
 
 export const api = {
   systemCheck: () => req('/api/system/check'),
+  getCookiesStatus: () => req('/api/system/cookies'),
+  saveCookies: (cookies_data) => req('/api/system/cookies', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cookies_data }),
+  }),
+  deleteCookies: () => req('/api/system/cookies', { method: 'DELETE' }),
+  uploadCookiesFile: (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return req('/api/system/cookies', { method: 'POST', body: fd });
+  },
 
   listProjects: () => req('/api/projects'),
   createProject: (data) => req('/api/projects', {

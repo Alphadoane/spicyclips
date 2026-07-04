@@ -23,8 +23,89 @@ export function initMediaPool() {
     for (const file of files) await doUpload(file);
   });
 
+  // Cookies Modal
+  wireModalDismiss('modal-cookies');
+  document.getElementById('btn-open-cookies').addEventListener('click', () => {
+    openCookiesModal();
+  });
+  document.getElementById('btn-save-cookies').addEventListener('click', saveCookies);
+  document.getElementById('btn-delete-cookies').addEventListener('click', deleteCookies);
+  document.getElementById('btn-upload-cookies').addEventListener('click', () => {
+    document.getElementById('cookies-file-input').click();
+  });
+  document.getElementById('cookies-file-input').addEventListener('change', uploadCookiesFile);
+
   on('project:loaded', renderMediaList);
   on('media:changed', renderMediaList);
+}
+
+async function openCookiesModal() {
+  document.getElementById('cookies-input').value = '';
+  document.getElementById('cookies-status').textContent = 'Loading status...';
+  openModal('modal-cookies');
+  await updateCookiesStatus();
+}
+
+async function updateCookiesStatus() {
+  const statusEl = document.getElementById('cookies-status');
+  const deleteBtn = document.getElementById('btn-delete-cookies');
+  try {
+    const status = await api.getCookiesStatus();
+    if (status.present) {
+      statusEl.textContent = `${status.count} cookies active (${Math.round(status.size_bytes / 1024)} KB)`;
+      deleteBtn.disabled = false;
+    } else {
+      statusEl.textContent = 'No cookies loaded';
+      deleteBtn.disabled = true;
+    }
+  } catch (e) {
+    statusEl.textContent = 'Error checking cookies';
+    deleteBtn.disabled = true;
+  }
+}
+
+async function saveCookies() {
+  const text = document.getElementById('cookies-input').value.trim();
+  if (!text) { toast('Please paste cookie data first', 'error'); return; }
+  const saveBtn = document.getElementById('btn-save-cookies');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  try {
+    await api.saveCookies(text);
+    toast('Cookies saved successfully');
+    document.getElementById('cookies-input').value = '';
+    await updateCookiesStatus();
+    closeModal('modal-cookies');
+  } catch (e) {
+    toast('Failed to save cookies: ' + e.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Cookies';
+  }
+}
+
+async function deleteCookies() {
+  if (!confirm('Are you sure you want to remove all cookies?')) return;
+  try {
+    await api.deleteCookies();
+    toast('Cookies removed');
+    await updateCookiesStatus();
+  } catch (e) {
+    toast('Failed to delete cookies: ' + e.message, 'error');
+  }
+}
+
+async function uploadCookiesFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  try {
+    await api.uploadCookiesFile(file);
+    toast('Cookies file uploaded successfully');
+    await updateCookiesStatus();
+  } catch (e) {
+    toast('Failed to upload cookies file: ' + e.message, 'error');
+  }
 }
 
 function resetImportModal() {

@@ -79,6 +79,60 @@ def system_check():
     })
 
 
+@app.route("/api/system/cookies", methods=["GET"])
+def get_system_cookies():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    cookies_path = os.path.join(root_dir, "cookies.txt")
+    if os.path.exists(cookies_path):
+        try:
+            with open(cookies_path, "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
+            cookie_count = sum(1 for line in lines if line.strip() and not line.startswith("#"))
+            return jsonify({
+                "present": True,
+                "size_bytes": os.path.getsize(cookies_path),
+                "count": cookie_count
+            })
+        except Exception as e:
+            return jsonify({"present": True, "error": str(e)})
+    return jsonify({"present": False})
+
+
+@app.route("/api/system/cookies", methods=["POST"])
+def save_system_cookies():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    cookies_path = os.path.join(root_dir, "cookies.txt")
+    
+    if request.is_json:
+        data = request.get_json()
+        cookies_data = data.get("cookies_data", "")
+    elif "file" in request.files:
+        f = request.files["file"]
+        cookies_data = f.read().decode("utf-8", errors="ignore")
+    else:
+        return jsonify({"error": "No cookie data provided"}), 400
+
+    try:
+        with open(cookies_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(cookies_data)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": f"Failed to save cookies: {e}"}), 500
+
+
+@app.route("/api/system/cookies", methods=["DELETE"])
+def delete_system_cookies():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    cookies_path = os.path.join(root_dir, "cookies.txt")
+    if os.path.exists(cookies_path):
+        try:
+            os.remove(cookies_path)
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"error": f"Failed to delete: {e}"}), 500
+    return jsonify({"ok": True})
+
+
 # ------------------------------------------------------------ projects ----
 
 @app.route("/api/projects", methods=["GET"])
