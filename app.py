@@ -12,6 +12,12 @@ import shutil
 import threading
 import uuid
 
+# Add local ffmpeg/bin to PATH if it exists (for portability when run outside run.bat)
+local_ffmpeg = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ffmpeg", "bin")
+if os.path.exists(local_ffmpeg) and local_ffmpeg not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = local_ffmpeg + os.pathsep + os.environ.get("PATH", "")
+
+
 from flask import Flask, jsonify, request, render_template, send_from_directory
 from werkzeug.utils import secure_filename
 
