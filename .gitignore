@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Local binaries & installers
+ffmpeg/
+ffmpeg.zip
+temp_ffmpeg_extract/
+
+# Runtime data
+data/
+
+# OS specific files
+.DS_Store
+Thumbs.db

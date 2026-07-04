@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Splice — Local Video Editor</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <div id="system-banner" class="system-banner hidden"></div>
+
+  <!-- ============================================================ TOPBAR -->
+  <div id="topbar">
+    <div class="brand">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M3 12h6M9 12l3-7M15 12h6M9 12l3 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      SPLICE
+    </div>
+    <input id="project-name" type="text" value="Untitled Project" spellcheck="false">
+    <span id="save-indicator" class="mono">All changes saved</span>
+    <div class="spacer"></div>
+    <button id="btn-projects" class="ghost small" title="Back to projects">Projects</button>
+    <button id="btn-export" class="primary">Export</button>
+  </div>
+
+  <!-- ========================================================= WORKSPACE -->
+  <div id="workspace">
+
+    <!-- ----------------------------------------------------- media pool -->
+    <div id="media-panel">
+      <div class="panel-header">
+        <h2>Media Pool</h2>
+        <div style="display:flex; gap:6px;">
+          <button id="btn-import-url" class="icon ghost" title="Import from URL">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1 1M14 11a5 5 0 0 0-7.07 0l-2 2a5 5 0 0 0 7.07 7.07l1-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <button id="btn-upload" class="icon ghost" title="Upload local file">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4l-4 4M12 4l4 4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <input id="file-input" type="file" accept="video/*,audio/*" class="hidden" multiple>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div id="media-list"></div>
+        <div id="media-empty" class="empty-hint">No media yet. Paste a link or upload a file to get started.</div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------------------- center col -->
+    <div id="center-panel">
+
+      <div id="preview-wrap">
+        <div id="preview-stage">
+          <video id="video-a" class="layer-a" muted playsinline></video>
+          <video id="video-b" class="layer-b" muted playsinline></video>
+          <div id="overlay-layer"></div>
+        </div>
+        <div id="no-preview">Add a clip to the timeline to see a preview</div>
+      </div>
+
+      <div id="transport">
+        <button id="btn-play" class="icon" title="Play/Pause">
+          <svg id="icon-play" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l15 8-15 8V4z"/></svg>
+          <svg id="icon-pause" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+        </button>
+        <button id="btn-stop" class="icon ghost" title="Back to start">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM11 12l9-7v14z"/></svg>
+        </button>
+        <button id="btn-split" class="ghost small" title="Split clip at playhead (S)">Split</button>
+        <button id="btn-delete-clip" class="ghost small" title="Delete selected clip (Del)">Delete</button>
+        <div class="tc"><span class="now" id="tc-now">00:00:00.0</span> / <span id="tc-total">00:00:00.0</span></div>
+        <div id="zoom-controls">
+          <span>Zoom</span>
+          <button id="zoom-out" class="icon ghost small">−</button>
+          <button id="zoom-in" class="icon ghost small">+</button>
+        </div>
+      </div>
+
+      <div id="timeline-wrap">
+        <div id="track-headers"></div>
+        <div id="timeline-scroll">
+          <div id="ruler"><div class="sprockets" id="sprockets"></div><div id="ruler-click-target"></div></div>
+          <div id="tracks"></div>
+          <div id="playhead"><div class="flag"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------ inspector -->
+    <div id="inspector-panel">
+      <div class="panel-header"><h2>Inspector</h2></div>
+      <div class="panel-body" id="inspector-content">
+        <div class="empty-inspector">Select a clip on the timeline to edit its trim, effects, transition, or timing.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ MODALS -->
+
+<div id="modal-import-url" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header"><h2>Import from URL</h2><button class="icon ghost" data-close>&times;</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Media link</label>
+        <input id="import-url-input" type="url" placeholder="https://…">
+      </div>
+      <button id="btn-probe-url" class="small">Look up link</button>
+      <div id="import-probe-result" class="hidden" style="margin-top:16px;">
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+          <img id="import-thumb" style="width:96px;height:64px;object-fit:cover;border-radius:5px;background:#000;">
+          <div style="min-width:0;">
+            <div id="import-title" style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+            <div id="import-duration" class="mono" style="font-size:11px; color:var(--text-dim); margin-top:3px;"></div>
+          </div>
+        </div>
+        <label>Quality</label>
+        <div id="import-quality-grid" class="quality-grid"></div>
+      </div>
+      <div id="import-progress" class="hidden">
+        <div class="progress-bar"><div class="fill"></div></div>
+        <div class="progress-msg" id="import-progress-msg">Starting…</div>
+      </div>
+      <div id="import-error" class="hidden" style="color:#ffb3c0; font-size:12.5px; margin-top:10px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button data-close class="ghost">Cancel</button>
+      <button id="btn-start-import" class="primary" disabled>Import</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-export" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header"><h2>Export video</h2><button class="icon ghost" data-close>&times;</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Format</label>
+        <div class="quality-grid" id="export-format-grid" style="grid-template-columns:repeat(4,1fr);">
+          <button data-format="mp4" class="selected">MP4</button>
+          <button data-format="mov">MOV</button>
+          <button data-format="webm">WebM</button>
+          <button data-format="gif">GIF</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Resolution</label>
+        <div class="quality-grid" id="export-res-grid">
+          <button data-res="source" class="selected">Source</button>
+          <button data-res="4K">4K</button>
+          <button data-res="1440p">1440p</button>
+          <button data-res="1080p">1080p</button>
+          <button data-res="720p">720p</button>
+          <button data-res="480p">480p</button>
+          <button data-res="360p">360p</button>
+        </div>
+      </div>
+      <div class="field" id="export-subs-field">
+        <label>Subtitles</label>
+        <div class="quality-grid" id="export-subs-grid" style="grid-template-columns:repeat(3,1fr);">
+          <button data-subs="burn" class="selected">Burn in</button>
+          <button data-subs="soft">Soft (mp4/mov)</button>
+          <button data-subs="none">None</button>
+        </div>
+      </div>
+      <div id="export-progress" class="hidden">
+        <div class="progress-bar"><div class="fill"></div></div>
+        <div class="progress-msg" id="export-progress-msg">Starting…</div>
+      </div>
+      <div id="export-done" class="hidden" style="margin-top:12px;">
+        <a id="export-download-link" href="#" download><button class="primary">Download file</button></a>
+      </div>
+      <div id="export-error" class="hidden" style="color:#ffb3c0; font-size:12.5px; margin-top:10px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button data-close class="ghost">Close</button>
+      <button id="btn-start-export" class="primary">Start export</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-new-project" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header"><h2>New project</h2><button class="icon ghost" data-close>&times;</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Name</label>
+        <input id="new-project-name" type="text" value="Untitled Project">
+      </div>
+      <div class="field">
+        <label>Resolution</label>
+        <div class="quality-grid" id="new-project-res-grid">
+          <button data-w="3840" data-h="2160">4K</button>
+          <button data-w="1920" data-h="1080" class="selected">1080p</button>
+          <button data-w="1280" data-h="720">720p</button>
+          <button data-w="1080" data-h="1920">1080×1920</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button data-close class="ghost">Cancel</button>
+      <button id="btn-create-project" class="primary">Create project</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================================================== PROJECT BROWSER -->
+<div id="project-browser" class="hidden">
+  <div class="brand-big">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+      <path d="M3 12h6M9 12l3-7M15 12h6M9 12l3 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    SPLICE
+  </div>
+  <div class="tagline">A local, non-destructive video editor. Everything below lives on this machine.</div>
+  <div class="browser-grid" id="browser-grid"></div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
